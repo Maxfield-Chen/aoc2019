@@ -1,8 +1,6 @@
 module Main where
 
 import           Text.ParserCombinators.Parsec
-import           Data.Maybe                    as Maybe
-import qualified Data.Map                      as M
 
 type Module = Int
 type Fuel = Int
@@ -21,14 +19,28 @@ eol = char '\n'
 parseModules :: String -> Either ParseError [Module]
 parseModules = parse pModules "(unknown)"
 
+calcInitialFuel :: Module -> Fuel
+calcInitialFuel mass = floor (dModuleMass / 3) - 2
+  where dModuleMass = fromIntegral mass :: Double
+
 calcFuel :: Module -> Fuel
-calcFuel moduleMass = floor (dModuleMass / 3) - 2
-  where dModuleMass = fromIntegral moduleMass :: Double
+calcFuel = incrementFuel 0
+ where
+  incrementFuel total increment
+    | initialFuel <= 0 = total
+    | otherwise        = incrementFuel (total + initialFuel) initialFuel
+    where initialFuel = calcInitialFuel increment
 
 main :: IO ()
 main = do
-  part1 <- readFile "/home/nihliphobe/projects/haskell/aoc2019/Day1/data/part1.txt"
+  part1 <- readFile
+    "/home/nihliphobe/projects/haskell/aoc2019/Day1/data/part1.txt"
   case parseModules part1 of
-    Left err -> fail (show err)
-    Right modules -> print sumFuel
-      where sumFuel = sum (map calcFuel modules)
+    Left  err     -> fail (show err)
+    Right modules -> do
+      putStrLn $ "Part 1: " ++ show part1
+      putStrLn $ "Part 2: " ++ show part2
+     where
+      part1 = sum (map calcInitialFuel modules)
+      part2 = sum (map calcFuel modules)
+
