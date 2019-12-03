@@ -1,9 +1,13 @@
 module Main where
 
 import           Text.ParserCombinators.Parsec
+import           Data.List
 
 type Op = Int
 type PC = Int
+type Noun = Int
+type Verb = Int
+type Output = Int
 type Status = Bool
 
 pOps :: Parser [Op]
@@ -43,16 +47,35 @@ evaluateCode = step 0
     op                 = head (drop pc code)
     (status, nextStep) = doOp pc code
 
-gen1202 :: [Op] -> [Op]
-gen1202 code = start ++ [12, 2] ++ end
+programNV :: Noun -> Verb -> [Op] -> [Op]
+programNV n v code = start ++ [n, v] ++ end
  where
   start = [head code]
   end   = drop 3 code
+
+getOutput :: Noun -> Verb -> [Op] -> Output
+getOutput noun verb program =
+  (head . evaluateCode) (programNV noun verb program)
+
+findValue :: Output -> [Op] -> Maybe (Output, Noun, Verb)
+findValue desired program = Data.List.find isDesired outputs
+ where
+  isDesired (output, _, _) = output == desired
+  outputs = map (\(n, v) -> (getOutput n v program, n, v)) combos
+  combos  = [ (x, y) | x <- [0 .. 99], y <- [0 .. 99] ]
 
 main :: IO ()
 main = do
   input1 <- readFile
     "/home/nihliphobe/projects/haskell/aoc2019/Day2/data/part1.txt"
   case parseOps input1 of
-    Left  err -> fail (show err)
-    Right ops -> print part1 where part1 = evaluateCode (gen1202 ops)
+    Left  err     -> fail (show err)
+    Right program -> do
+      print part1
+      print part2
+     where
+      part1 = (head . evaluateCode) (programNV 12 2 program)
+      part2 = case findValue 19690720 program of
+        Nothing -> "Part 2 Errored.\n"
+        Just (output, noun, verb) ->
+          "Part 2: (" ++ show output ++ "," ++ show noun ++ "," ++ show verb ++ ")"
