@@ -1,7 +1,7 @@
 module Main where
 
 import           Text.ParserCombinators.Parsec
-import qualified Data.Sequence as S
+import qualified Data.Set as S
 import qualified Data.List as L
 import qualified Data.Function as F
 
@@ -43,16 +43,18 @@ directionToCoord direction = case direction of
                                D -> (0,-1)
                                L -> (-1,0)
 
-applyVector :: [Coord] -> Vector -> [Coord]
-applyVector wire (direction, distance) = wire ++ paths
+applyVector :: (Coord, S.Set Coord) -> Vector -> (Coord, S.Set Coord)
+applyVector start (direction, distance) = (end, wire `S.union` S.fromList paths)
   where 
-        (xs,ys) = last wire
+        ((xs,ys),wire) = start
+        end = (xs + distance * xd, ys + distance*yd)
         paths = map (\(x,y) -> (xs + x*xd, ys + y*yd)) deltas
         deltas = zip [1..distance] [1..distance]
         (xd, yd) = directionToCoord direction
 
-vecToCoords :: [Vector] -> [Coord]
-vecToCoords = drop 1 . foldl applyVector [(0,0)]
+vecToCoords :: [Vector] -> S.Set Coord
+vecToCoords vs =   ret `S.difference` S.singleton (0,0)
+  where (_,ret) = foldl applyVector ((0,0), S.singleton (0,0)) vs 
 
 cabDistance :: Coord -> Coord -> Distance
 cabDistance (p1, p2) (q1,q2) = abs (p1-q1) + abs (p2-q2)
@@ -66,7 +68,7 @@ main = do
       print p1
       where 
             p1 = L.minimumBy (compare `F.on` fst) cabs
-            cabs = map (\c -> (cabDistance (0,0) c, c)) crosses
-            crosses = w1 `L.intersect` w2
-            w1 = vecToCoords ( head wires)
+            cabs = map (\c -> (cabDistance (0,0) c, c)) (S.toList crosses)
+            crosses = w1 `S.intersection` w2
+            w1 = vecToCoords (head wires)
             w2 = vecToCoords (last wires)
