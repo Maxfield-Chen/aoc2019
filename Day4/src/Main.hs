@@ -16,12 +16,18 @@ type Instruction = (Op, [Mode])
 maxOps = 3
 
 pOps :: Parser [Op]
-pOps = sepBy pOp comma
+pOps = sepBy (choice [pOp, pOpMinus]) comma
 
 pOp :: Parser Op
 pOp = do
   digits <- many1 digit
   return (read digits)
+
+pOpMinus :: Parser Op
+pOpMinus = do
+  sign   <- char '-'
+  digits <- many1 digit
+  let value = read digits in return (-value)
 
 comma :: Parser Char
 comma = char ','
@@ -118,5 +124,5 @@ main = do
   case parseOps input1 of
     Left  err     -> fail (show err)
     Right program -> do
-      print part1
-      where part1 = fst (evaluateCode program [1])
+      print program
+      where part1 = evaluateCode program [1]
