@@ -41,10 +41,7 @@ parseModes ret (ms : xs) = parseModes (mode : ret) xs
   mode | digitToInt ms == 1 = Immediate
        | otherwise          = Position
 
-parseModes ret m = reverse ret
- where
-  mode | (digitToInt . head) m == 1 = Immediate
-       | otherwise                  = Position
+parseModes ret m = ret
 
 rpad :: Int -> Mode -> [Mode] -> [Mode]
 rpad n mode ret | length ret < n = rpad n mode (ret ++ [mode])
@@ -86,17 +83,18 @@ evalOp3 code@(_ : p : _) input (m : _) = (replaceOp p (head input) code, 2)
 evalOp4 :: [Op] -> [Op] -> [Mode] -> (Op, PC)
 evalOp4 code@(_ : p : _) input (m : _) = (code !! p, 2)
 
-
-
 -- Note this function assumes opcode 99 is handled externally
-doOp :: PC -> [Op] -> ([Op], [Op]) -> (([Op], [Op]), ([Op], Int))
+doOp :: PC -> [Op] -> ([Op], [Op]) -> (([Op], [Op]), ([Op], PC))
 doOp n code (input, output)
   | op == 1
   = ((input, output), evalOp1 code modes)
   | op == 2
   = ((input, output), evalOp2 code modes)
   | op == 3
-  = ((tail input, output), evalOp3 code input modes)
+  = let newInput = case input of
+          (_ : xs) -> xs
+          _        -> input
+    in  ((newInput, output), evalOp3 code input modes)
   | op == 4
   = let (ret, newPC) = evalOp4 code input modes
     in  ((input, ret : output), (code, newPC))
@@ -106,7 +104,6 @@ doOp n code (input, output)
   i@(op, modes) = opToInstruction nextOp
   nextOp        = head code
 
--- TODO: Handle the invalid list case where head fails here.
 evaluateCode :: [Op] -> [Op] -> ([Op], [Op])
 evaluateCode code userInput = step 0 code (userInput, [])
  where
@@ -124,5 +121,5 @@ main = do
   case parseOps input1 of
     Left  err     -> fail (show err)
     Right program -> do
-      print program
-      where part1 = evaluateCode program [1]
+      print part1
+      where part1 = evaluateCode program (repeat 1)
