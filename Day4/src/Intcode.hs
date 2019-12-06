@@ -1,4 +1,4 @@
-module Intcode where
+module Main where
 
 import           Text.ParserCombinators.Parsec
 import           Data.List
@@ -46,51 +46,77 @@ rpad n mode ret | length ret < n = rpad n mode (ret ++ [mode])
 
 
 -- Takes a reversed op string as an argument, returns list of modes
-opToModes :: Op -> Instruction
-opToModes i = (op, rpad maxOps Position modes)
+opToInstruction :: Op -> Instruction
+opToInstruction i = (op, rpad (maxOps + 1) Position modes)
  where
   s     = show i
   rs    = reverse s
   op    = read (reverse (take 2 rs)) :: Int
   modes = parseModes [] (drop 2 rs)
 
--- Note this function assumes opcode 99 is handled externally
-doOp :: PC -> [Op] -> (Status, [Op])
-doOp n code
-  | op == 1   = (True, take dest code ++ [a + b] ++ drop (dest + 1) code)
-  | op == 2   = (True, take dest code ++ [a * b] ++ drop (dest + 1) code)
-  | otherwise = error ("Unknown Opcode detected: " ++ show op)
+replaceOp :: PC -> Op -> [Op] -> [Op]
+replaceOp n x code = take n code ++ [x] ++ drop (n + 1) code
+
+evalMode :: Mode -> PC -> [Op] -> Op
+evalMode Immediate n code = n
+evalMode Position  n code = code !! max 0 n
+
+eval4OpFunc :: (Op -> Op -> Op) -> [Op] -> [Mode] -> ([Op], PC)
+eval4OpFunc f code@(_ : p1 : p2 : dest : _) (m1 : m2 : m3 : _) =
+  (replaceOp dest (f r1 r2) code, 4)
  where
-  (op : p1 : p2 : xs) = drop n code
-  a                   = (last . take (p1 + 1)) code
-  b                   = (last . take (p2 + 1)) code
-  dest                = head xs
+  r1 = evalMode m2 p2 code
+  r2 = evalMode m1 p1 code
+
+evalOp1 :: [Op] -> [Mode] -> ([Op], PC)
+evalOp1 = eval4OpFunc (+)
+
+evalOp2 :: [Op] -> [Mode] -> ([Op], PC)
+evalOp2 = eval4OpFunc (*)
+
+evalOp3 :: [Op] -> [Op] -> [Mode] -> ([Op], PC)
+evalOp3 code@(_ : p : _) input (m : _) = (replaceOp p (head input) code, 2)
+
+evalOp4 :: [Op] -> [Op] -> [Mode] -> (Op, PC)
+evalOp4 code@(_ : p : _) input (m : _) = (code !! p, 2)
+
+
+
+-- Note this function assumes opcode 99 is handled externally
+doOp :: PC -> [Op] -> ([Op], [Op]) -> (([Op], [Op]), ([Op], Int))
+doOp n code (input, output)
+  | op == 1
+  = ((input, output), evalOp1 code modes)
+  | op == 2
+  = ((input, output), evalOp2 code modes)
+  | op == 3
+  = ((tail input, output), evalOp3 code input modes)
+  | op == 4
+  = let (ret, newPC) = evalOp4 code input modes
+    in  ((input, ret : output), (code, newPC))
+  | otherwise
+  = error ("Unknown Opcode detected: " ++ show op)
+ where
+  i@(op, modes) = opToInstruction nextOp
+  nextOp        = head code
 
 -- TODO: Handle the invalid list case where head fails here.
-evaluateCode :: [Op] -> [Op]
-evaluateCode = step 0
+evaluateCode :: [Op] -> [Op] -> ([Op], [Op])
+evaluateCode code userInput = step 0 code (userInput, [])
  where
-  step pc code | op == 99  = code
-               | status    = step (pc + 4) nextStep
-               | otherwise = nextStep
+  step pc code (input, output)
+    | op == 99  = (output, code)
+    | otherwise = step (pc + pcInc) nextStep (nextInput, nextOutput)
    where
-    op                 = head (drop pc code)
-    (status, nextStep) = doOp pc code
+    op = code !! max 0 pc
+    ((nextInput, nextOutput), (nextStep, pcInc)) = doOp pc code (input, output)
 
-programNV :: Noun -> Verb -> [Op] -> [Op]
-programNV n v code = start ++ [n, v] ++ end
- where
-  start = [head code]
-  end   = drop 3 code
-
-getOutput :: Noun -> Verb -> [Op] -> Output
-getOutput noun verb program =
-  (head . evaluateCode) (programNV noun verb program)
-
-findValue :: Output -> [Op] -> Maybe (Output, Noun, Verb)
-findValue desired program = Data.List.find isDesired outputs
- where
-  isDesired (output, _, _) = output == desired
-  outputs = map (\(n, v) -> (getOutput n v program, n, v)) combos
-  combos  = [ (x, y) | x <- [0 .. 99], y <- [0 .. 99] ]
-
+main :: IO ()
+main = do
+  input1 <- readFile
+    "/home/nihliphobe/projects/haskell/aoc2019/Day4/data/part1.txt"
+  case parseOps input1 of
+    Left  err     -> fail (show err)
+    Right program -> do
+      print part1
+      where part1 = fst (evaluateCode program [1])
