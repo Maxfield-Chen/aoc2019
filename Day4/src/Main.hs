@@ -62,47 +62,57 @@ replaceOp n x code = take n code ++ [x] ++ drop (n + 1) code
 
 evalMode :: Mode -> PC -> [Op] -> Op
 evalMode Immediate n code = n
-evalMode Position  n code = code !! max 0 n
+evalMode Position  n code = if n < length code
+  then code !! max 0 n
+  else error
+    (  "Cannot get value of positional parameter "
+    ++ show n
+    ++ " from "
+    ++ show code
+    )
 
-eval4OpFunc :: (Op -> Op -> Op) -> [Op] -> [Mode] -> ([Op], PC)
-eval4OpFunc f code@(_ : p1 : p2 : dest : _) (m1 : m2 : m3 : _) =
+eval4OpFunc :: (Op -> Op -> Op) -> [Op] -> [Op] -> [Mode] -> ([Op], PC)
+eval4OpFunc f code position@(_ : p1 : p2 : dest : _) (m1 : m2 : m3 : _) =
   (replaceOp dest (f r1 r2) code, 4)
  where
   r1 = evalMode m2 p2 code
   r2 = evalMode m1 p1 code
 
-evalOp1 :: [Op] -> [Mode] -> ([Op], PC)
+evalOp1 :: [Op] -> [Op] -> [Mode] -> ([Op], PC)
 evalOp1 = eval4OpFunc (+)
 
-evalOp2 :: [Op] -> [Mode] -> ([Op], PC)
+evalOp2 :: [Op] -> [Op] -> [Mode] -> ([Op], PC)
 evalOp2 = eval4OpFunc (*)
 
-evalOp3 :: [Op] -> [Op] -> [Mode] -> ([Op], PC)
-evalOp3 code@(_ : p : _) input (m : _) = (replaceOp p (head input) code, 2)
+evalOp3 :: [Op] -> [Op] -> [Op] -> [Mode] -> ([Op], PC)
+evalOp3 code position@(_ : p : _) input (m : _) =
+  (replaceOp p (head input) code, 2)
 
-evalOp4 :: [Op] -> [Op] -> [Mode] -> (Op, PC)
-evalOp4 code@(_ : p : _) input (m : _) = (code !! p, 2)
+evalOp4 :: [Op] -> [Op] -> [Op] -> [Mode] -> (Op, PC)
+evalOp4 code position@(_ : p : _) input (m : _) = (code !! p, 2)
 
 -- Note this function assumes opcode 99 is handled externally
-doOp :: PC -> [Op] -> ([Op], [Op]) -> (([Op], [Op]), ([Op], PC))
-doOp n code (input, output)
+doOp :: PC -> [Op] -> [Op] -> ([Op], [Op]) -> (([Op], [Op]), ([Op], PC))
+doOp pc code position (input, output)
   | op == 1
-  = ((input, output), evalOp1 code modes)
+  = ((input, output), evalOp1 code position modes)
   | op == 2
-  = ((input, output), evalOp2 code modes)
+  = ((input, output), evalOp2 code position modes)
   | op == 3
   = let newInput = case input of
           (_ : xs) -> xs
           _        -> input
-    in  ((newInput, output), evalOp3 code input modes)
+    in  ((newInput, output), evalOp3 code position input modes)
   | op == 4
-  = let (ret, newPC) = evalOp4 code input modes
+  = let (ret, newPC) = evalOp4 code position input modes
     in  ((input, ret : output), (code, newPC))
   | otherwise
   = error ("Unknown Opcode detected: " ++ show op)
  where
   i@(op, modes) = opToInstruction nextOp
-  nextOp        = head code
+  nextOp        = if pc < length code
+    then code !! max 0 pc
+    else error ("Cannot Read next op, PC:" ++ show pc ++ " | " ++ show code)
 
 evaluateCode :: [Op] -> [Op] -> ([Op], [Op])
 evaluateCode code userInput = step 0 code (userInput, [])
@@ -111,13 +121,21 @@ evaluateCode code userInput = step 0 code (userInput, [])
     | op == 99  = (output, code)
     | otherwise = step (pc + pcInc) nextStep (nextInput, nextOutput)
    where
-    op = code !! max 0 pc
-    ((nextInput, nextOutput), (nextStep, pcInc)) = doOp pc code (input, output)
+    op = if pc < length code
+      then code !! max 0 pc
+      else error ("Cannot Read next op, PC:" ++ show pc ++ " | " ++ show code)
+    position = drop pc code
+    ((nextInput, nextOutput), (nextStep, pcInc)) =
+      doOp pc code position (input, output)
 
 main :: IO ()
 main = do
   input1 <- readFile
     "/home/nihliphobe/projects/haskell/aoc2019/Day4/data/part1.txt"
+  --print (evaluateCode [3, 0, 3, 1, 99] [1, 2, 3])
+  --print (evaluateCode [4, 0, 4, 4, 99] [1, 2, 3])
+  --print (evaluateCode [102, 0, 2, 3, 99] [1, 2, 3])
+  --print (evaluateCode [3, 0, 2, 0, 2, 3, 99] [1, 2, 3, 4])
   case parseOps input1 of
     Left  err     -> fail (show err)
     Right program -> do
