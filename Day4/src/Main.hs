@@ -3,6 +3,7 @@ module Main where
 import           Text.ParserCombinators.Parsec
 import           Data.List
 import           Data.Char                      ( digitToInt )
+import           Debug.Trace
 
 type Op = Int
 type PC = Int
@@ -47,8 +48,6 @@ rpad :: Int -> Mode -> [Mode] -> [Mode]
 rpad n mode ret | length ret < n = rpad n mode (ret ++ [mode])
                 | otherwise      = ret
 
-
--- Takes a reversed op string as an argument, returns list of modes
 opToInstruction :: Op -> Instruction
 opToInstruction i = (op, rpad (maxOps + 1) Position modes)
  where
@@ -89,7 +88,7 @@ evalOp3 code position@(_ : p : _) input (m : _) =
   (replaceOp p (head input) code, 2)
 
 evalOp4 :: [Op] -> [Op] -> [Op] -> [Mode] -> (Op, PC)
-evalOp4 code position@(_ : p : _) input (m : _) = (code !! p, 2)
+evalOp4 code position@(_ : p : _) input (m : _) = (evalMode m p code, 2)
 
 -- Note this function assumes opcode 99 is handled externally
 doOp :: PC -> [Op] -> [Op] -> ([Op], [Op]) -> (([Op], [Op]), ([Op], PC))
@@ -104,8 +103,8 @@ doOp pc code position (input, output)
           _        -> input
     in  ((newInput, output), evalOp3 code position input modes)
   | op == 4
-  = let (ret, newPC) = evalOp4 code position input modes
-    in  ((input, ret : output), (code, newPC))
+  = let (ret, pcInc) = evalOp4 code position input modes
+    in  ((input, ret : output), (code, pcInc))
   | otherwise
   = error ("Unknown Opcode detected: " ++ show op)
  where
@@ -114,30 +113,34 @@ doOp pc code position (input, output)
     then code !! max 0 pc
     else error ("Cannot Read next op, PC:" ++ show pc ++ " | " ++ show code)
 
+step :: PC -> [Op] -> ([Op], [Op]) -> ([Op], [Op])
+step pc code (input, output)
+  | op == 99  = (output, code)
+  | otherwise = step (pc + pcInc) nextStep (nextInput, nextOutput)
+ where
+  op = if pc < length code
+    then code !! max 0 pc
+    else error ("Cannot Read next op, PC:" ++ show pc ++ " | " ++ show code)
+  position = drop pc code
+  ((nextInput, nextOutput), (nextStep, pcInc)) =
+    doOp pc code position (input, output)
+
 evaluateCode :: [Op] -> [Op] -> ([Op], [Op])
 evaluateCode code userInput = step 0 code (userInput, [])
- where
-  step pc code (input, output)
-    | op == 99  = (output, code)
-    | otherwise = step (pc + pcInc) nextStep (nextInput, nextOutput)
-   where
-    op = if pc < length code
-      then code !! max 0 pc
-      else error ("Cannot Read next op, PC:" ++ show pc ++ " | " ++ show code)
-    position = drop pc code
-    ((nextInput, nextOutput), (nextStep, pcInc)) =
-      doOp pc code position (input, output)
 
 main :: IO ()
 main = do
   input1 <- readFile
     "/home/nihliphobe/projects/haskell/aoc2019/Day4/data/part1.txt"
+  print (evaluateCode [04, 2, 99] [1])
   --print (evaluateCode [3, 0, 3, 1, 99] [1, 2, 3])
   --print (evaluateCode [4, 0, 4, 4, 99] [1, 2, 3])
   --print (evaluateCode [102, 0, 2, 3, 99] [1, 2, 3])
   --print (evaluateCode [3, 0, 2, 0, 2, 3, 99] [1, 2, 3, 4])
+  --print (evaluateCode [3, 0, 2, 0, 2, 3, 4, 0, 99] [1, 2, 3, 4])
+  --print (evaluateCode [101, 5, 2, 0, 3, 1, 4, 0, 99] [1, 2, 3, 4])
   case parseOps input1 of
     Left  err     -> fail (show err)
     Right program -> do
       print part1
-      where part1 = evaluateCode program (repeat 1)
+      where part1 = evaluateCode program [1]
