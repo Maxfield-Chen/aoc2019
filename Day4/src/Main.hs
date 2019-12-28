@@ -42,7 +42,7 @@ parseModes ret (ms : xs) = parseModes (mode : ret) xs
   mode | digitToInt ms == 1 = Immediate
        | otherwise          = Position
 
-parseModes ret m = ret
+parseModes ret m = reverse ret
 
 rpad :: Int -> Mode -> [Mode] -> [Mode]
 rpad n mode ret | length ret < n = rpad n mode (ret ++ [mode])
@@ -132,10 +132,10 @@ main :: IO ()
 main = do
   input1 <- readFile
     "/home/nihliphobe/projects/haskell/aoc2019/Day4/data/part1.txt"
-  print (evaluateCode [04, 2, 99] [1])
+  --print (evaluateCode [04, 2, 99] [1])
   --print (evaluateCode [3, 0, 3, 1, 99] [1, 2, 3])
   --print (evaluateCode [4, 0, 4, 4, 99] [1, 2, 3])
-  --print (evaluateCode [102, 0, 2, 3, 99] [1, 2, 3])
+  print (evaluateCode [1002, 0, 2, 3, 99] [1, 2, 3])
   --print (evaluateCode [3, 0, 2, 0, 2, 3, 99] [1, 2, 3, 4])
   --print (evaluateCode [3, 0, 2, 0, 2, 3, 4, 0, 99] [1, 2, 3, 4])
   --print (evaluateCode [101, 5, 2, 0, 3, 1, 4, 0, 99] [1, 2, 3, 4])
