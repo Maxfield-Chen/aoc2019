@@ -61,6 +61,9 @@ opToInstruction i = (op, rpad (maxOps + 1) Position modes)
   op    = read (reverse (take 2 rs)) :: Int
   modes = parseModes [] (drop 2 rs)
 
+intStateToPosition :: IntState -> [Op]
+intStateToPosition s = drop (pc s) (code s)
+
 replaceOp :: PC -> Op -> [Op] -> [Op]
 replaceOp n x code = take n code ++ [x] ++ drop (n + 1) code
 
@@ -78,11 +81,11 @@ evalMode Position  n code = if n < length code
 eval4OpFunc :: (Op -> Op -> Op) -> IntState -> IntState
 eval4OpFunc f s = s { code = nextCode, pc = pc s + 4 }
  where
+  (i : p1 : p2 : dest : _) = intStateToPosition s
+  (nextOp, modes)          = opToInstruction i
+  (m1 : m2 : _)            = modes
   r2                       = evalMode m2 p2 (code s)
   r1                       = evalMode m1 p1 (code s)
-  (i : p1 : p2 : dest : _) = drop (pc s) (code s)
-  (m1          : m2   : _) = modes
-  (nextOp, modes)          = opToInstruction i
   nextCode                 = replaceOp dest (f r1 r2) (code s)
 
 evalOp1 :: IntState -> IntState
@@ -94,14 +97,14 @@ evalOp2 = eval4OpFunc (*)
 evalOp3 :: IntState -> IntState
 evalOp3 s = s { code = nextCode, pc = pc s + 2, input = tail (input s) }
  where
+  (_ : p1 : _) = intStateToPosition s
   nextCode     = replaceOp p1 (head (input s)) (code s)
-  (_ : p1 : _) = drop (pc s) (code s)
 
 evalOp4 :: IntState -> IntState
 evalOp4 s = s { output = save : output s, pc = pc s + 2 }
  where
+  (i : p1 : _) = intStateToPosition s
   (_, modes)   = opToInstruction i
-  (i : p1 : _) = drop (pc s) (code s)
   save         = evalMode (head modes) p1 (code s)
 
 -- Note this function assumes opcode 99 is handled externally
