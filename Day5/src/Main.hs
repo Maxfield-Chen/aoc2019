@@ -50,7 +50,7 @@ rpad n mode ret | length ret < n = rpad n mode (ret ++ [mode])
                 | otherwise      = ret
 
 opToInstruction :: Op -> (Op, [Mode])
-opToInstruction i = (op, rpad (maxOps + 1) Position modes)
+opToInstruction i = (op, rpad maxOps Position modes)
  where
   s     = show i
   rs    = reverse s
