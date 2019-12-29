@@ -12,10 +12,6 @@ data IntState = IntState { pc :: PC
 
 type Op = Int
 type PC = Int
-type Noun = Int
-type Verb = Int
-type Output = Int
-type Status = Bool
 data Mode = Position | Immediate deriving (Show, Eq)
 type Instruction = (Op, [Mode])
 
