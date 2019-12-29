@@ -107,12 +107,46 @@ evalOp4 s = s { output = save : output s, pc = pc s + 2 }
   (_, modes)   = opToInstruction i
   save         = evalMode (head modes) p1 (code s)
 
--- Note this function assumes opcode 99 is handled externally
+evalOpJumpIfFunc :: (Op -> Op -> Bool) -> IntState -> IntState
+evalOpJumpIfFunc f s = s { pc = newPC }
+ where
+  (i : p1 : p2 : _) = intStateToPosition s
+  (_, modes)        = opToInstruction i
+  (m1 : m2 : _)     = modes
+  (r1, r2)          = (evalMode m1 p1 (code s), evalMode m2 p2 (code s))
+  newPC             = if r1 `f` 0 then r2 else pc s + 3
+
+evalOp5 :: IntState -> IntState
+evalOp5 = evalOpJumpIfFunc (/=)
+
+evalOp6 :: IntState -> IntState
+evalOp6 = evalOpJumpIfFunc (==)
+
+evalOpFlagIfFunc :: (Op -> Op -> Bool) -> IntState -> IntState
+evalOpFlagIfFunc f s = s { code = newCode, pc = pc s + 4 }
+ where
+  (i : p1 : p2 : p3 : _) = intStateToPosition s
+  (_, modes)             = opToInstruction i
+  (m1 : m2 : m3 : _)     = modes
+  (r1, r2)               = (evalMode m1 p1 (code s), evalMode m2 p2 (code s))
+  newCode =
+    if r1 `f` r2 then replaceOp p3 1 (code s) else replaceOp p3 0 (code s)
+
+evalOp7 :: IntState -> IntState
+evalOp7 = evalOpFlagIfFunc (<)
+
+evalOp8 :: IntState -> IntState
+evalOp8 = evalOpFlagIfFunc (==)
+
 runIntCode :: IntState -> IntState
 runIntCode s | op == 1   = runIntCode $ evalOp1 s
              | op == 2   = runIntCode $ evalOp2 s
              | op == 3   = runIntCode $ evalOp3 s
              | op == 4   = runIntCode $ evalOp4 s
+             | op == 5   = runIntCode $ evalOp5 s
+             | op == 6   = runIntCode $ evalOp6 s
+             | op == 7   = runIntCode $ evalOp7 s
+             | op == 8   = runIntCode $ evalOp8 s
              | op == 99  = s
              | otherwise = error ("Unknown Opcode detected: " ++ show op)
  where
@@ -130,17 +164,11 @@ main :: IO ()
 main = do
   input1 <- readFile
     "/home/nihliphobe/projects/haskell/aoc2019/Day4/data/part1.txt"
-  print (evaluateCode [04, 2, 99] [1])
-  print (evaluateCode [3, 0, 3, 1, 99] [100, 101, 102])
-  print (evaluateCode [4, 0, 4, 4, 99] [1, 2, 3])
-  print (evaluateCode [104, 0, 4, 4, 99] [1, 2, 3])
-  print (evaluateCode [1002, 0, 2, 3, 99] [1, 2, 3])
-  print (evaluateCode [3, 0, 2, 0, 2, 3, 99] [1, 2, 3, 4])
-  print (evaluateCode [3, 0, 2, 0, 2, 3, 4, 0, 99] [1, 2, 3, 4])
-  print (evaluateCode [101, 5, 2, 0, 3, 1, 4, 0, 99] [99, 2, 3, 4])
   case parseOps input1 of
     Left  err     -> fail (show err)
     Right program -> do
       print part1
-      print "Done"
-      where part1 = evaluateCode program [1]
+      print part2
+     where
+      part1 = evaluateCode program [1]
+      part2 = evaluateCode program [5]

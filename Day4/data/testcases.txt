@@ -1,0 +1,8 @@
+  print (evaluateCode [04, 2, 99] [1])
+  print (evaluateCode [3, 0, 3, 1, 99] [100, 101, 102])
+  print (evaluateCode [4, 0, 4, 4, 99] [1, 2, 3])
+  print (evaluateCode [104, 0, 4, 4, 99] [1, 2, 3])
+  print (evaluateCode [1002, 0, 2, 3, 99] [1, 2, 3])
+  print (evaluateCode [3, 0, 2, 0, 2, 3, 99] [1, 2, 3, 4])
+  print (evaluateCode [3, 0, 2, 0, 2, 3, 4, 0, 99] [1, 2, 3, 4])
+  print (evaluateCode [101, 5, 2, 0, 3, 1, 4, 0, 99] [99, 2, 3, 4])
