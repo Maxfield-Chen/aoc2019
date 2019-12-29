@@ -134,9 +134,9 @@ runIntCode s | op == 1   = runIntCode $ evalOp1 s
              | op == 7   = runIntCode $ evalOp7 s
              | op == 8   = runIntCode $ evalOp8 s
              | op == 99  = s
-             | otherwise = error ("Unknown Opcode detected: " ++ show op)
+             | otherwise = error ("Unknown Opcode detected: " ++ show i)
  where
-  (op, _) = if pc s < length (code s)
+  i@(op, _) = if pc s < length (code s)
     then opToInstruction (code s !! max 0 (pc s))
     else error
       ("Cannot Read next op, PC:" ++ show (pc s) ++ " | " ++ show (code s))
