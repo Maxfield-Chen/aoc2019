@@ -16,6 +16,7 @@ data Mode = Position | Immediate deriving (Show, Eq)
 type Instruction = (Op, [Mode])
 
 maxOps = 3
+fileName = "/home/nihliphobe/projects/haskell/aoc2019/Day5/data/part1.txt"
 
 pOps :: Parser [Op]
 pOps = sepBy (choice [pOp, pOpMinus]) comma
@@ -118,21 +119,11 @@ evalOp5 = evalOpJumpIfFunc (/=)
 evalOp6 :: IntState -> IntState
 evalOp6 = evalOpJumpIfFunc (==)
 
-evalOpFlagIfFunc :: (Op -> Op -> Bool) -> IntState -> IntState
-evalOpFlagIfFunc f s = s { code = newCode, pc = pc s + 4 }
- where
-  (i : p1 : p2 : p3 : _) = intStateToPosition s
-  (_, modes)             = opToInstruction i
-  (m1 : m2 : m3 : _)     = modes
-  (r1, r2)               = (evalMode m1 p1 (code s), evalMode m2 p2 (code s))
-  newCode =
-    if r1 `f` r2 then replaceOp p3 1 (code s) else replaceOp p3 0 (code s)
-
 evalOp7 :: IntState -> IntState
-evalOp7 = evalOpFlagIfFunc (<)
+evalOp7 = eval4OpFunc (\r1 r2 -> if r1 < r2 then 1 else 0)
 
 evalOp8 :: IntState -> IntState
-evalOp8 = evalOpFlagIfFunc (==)
+evalOp8 = eval4OpFunc (\r1 r2 -> if r1 == r2 then 1 else 0)
 
 runIntCode :: IntState -> IntState
 runIntCode s | op == 1   = runIntCode $ evalOp1 s
@@ -151,15 +142,14 @@ runIntCode s | op == 1   = runIntCode $ evalOp1 s
     else error
       ("Cannot Read next op, PC:" ++ show (pc s) ++ " | " ++ show (code s))
 
-evaluateCode :: [Op] -> [Op] -> ([Op], [Op])
+evaluateCode :: [Op] -> [Op] -> [Op]
 evaluateCode intCode userInput =
   let endState = runIntCode (IntState 0 intCode userInput [])
-  in  (output endState, code endState)
+  in  output endState
 
 main :: IO ()
 main = do
-  input1 <- readFile
-    "/home/nihliphobe/projects/haskell/aoc2019/Day5/data/part1.txt"
+  input1 <- readFile fileName
   case parseOps input1 of
     Left  err     -> fail (show err)
     Right program -> do
