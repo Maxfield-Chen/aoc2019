@@ -163,7 +163,7 @@ evaluateCode intCode userInput =
 main :: IO ()
 main = do
   input1 <- readFile
-    "/home/nihliphobe/projects/haskell/aoc2019/Day4/data/part1.txt"
+    "/home/nihliphobe/projects/haskell/aoc2019/Day5/data/part1.txt"
   case parseOps input1 of
     Left  err     -> fail (show err)
     Right program -> do
