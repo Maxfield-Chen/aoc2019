@@ -13,7 +13,6 @@ data IntState = IntState { pc :: PC
 type Op = Int
 type PC = Int
 data Mode = Position | Immediate deriving (Show, Eq)
-type Instruction = (Op, [Mode])
 
 maxOps = 3
 fileName = "/home/nihliphobe/projects/haskell/aoc2019/Day5/data/part1.txt"
@@ -50,7 +49,7 @@ rpad :: Int -> Mode -> [Mode] -> [Mode]
 rpad n mode ret | length ret < n = rpad n mode (ret ++ [mode])
                 | otherwise      = ret
 
-opToInstruction :: Op -> Instruction
+opToInstruction :: Op -> (Op, [Mode])
 opToInstruction i = (op, rpad (maxOps + 1) Position modes)
  where
   s     = show i
