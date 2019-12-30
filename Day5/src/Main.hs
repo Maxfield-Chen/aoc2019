@@ -3,7 +3,6 @@ module Main where
 import           Text.ParserCombinators.Parsec
 import           Data.List
 import           Data.Char                      ( digitToInt )
-import           Debug.Trace
 
 data IntState = IntState { pc :: PC
                          , code :: [Op]
