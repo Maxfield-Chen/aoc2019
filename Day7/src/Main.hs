@@ -12,12 +12,12 @@ main = do
   case parseOps ampCode of
     Left  err     -> fail (show err)
     Right program -> do
-      print optimalSettings
+      print p1OptimalSettings
      where
-      amps            = replicate 5 (evaluateCode program)
-      phaseSettings   = permutations [0, 1, 2, 3, 4]
-      optimalSettings = maximumBy (comparing fst)
-        $ map (\ps -> (evalPhaseSetting amps ps, ps)) phaseSettings
+      amps              = replicate 5 (evaluateCode program)
+      p1PhaseSettings   = permutations [0 .. 4]
+      p1OptimalSettings = maximumBy (comparing fst)
+        $ map (\ps -> (evalPhaseSetting amps ps, ps)) p1PhaseSettings
 
 
 evalPhaseSetting :: [Amp] -> [Int] -> Int
