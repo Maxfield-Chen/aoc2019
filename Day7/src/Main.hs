@@ -3,7 +3,6 @@ module Main where
 import           IntCode
 import           Data.Ord
 import           Data.List
-import           Debug.Trace
 
 main :: IO ()
 main = do
@@ -12,7 +11,7 @@ main = do
     Left  err     -> fail (show err)
     Right program -> do
       print optimalSettings
-      print (evalLoopedPhaseSetting amps [9, 8, 7, 6, 5])
+      print optimalLoopedSettings
      where
       amps = replicate 5 (emptyIntState { code = program, status = Running })
       p1PhaseSettings = permutations [0 .. 4]
@@ -27,8 +26,10 @@ runAmpChain :: [IntState] -> [IntState]
 runAmpChain amps =
   let start : as = amps
   in  reverse $ foldl
-        (\r@(lastAmp : _) amp ->
-          runIntCode (amp { input = input amp ++ output lastAmp }) : r
+        (\(lastAmp : as) amp ->
+          runIntCode (amp { input = input amp ++ output lastAmp })
+            : lastAmp { output = [] }
+            : as
         )
         [runIntCode start]
         as
@@ -46,10 +47,10 @@ runLoop :: [IntState] -> Int
 runLoop amps | status lastAmp == Halt = head $ output lastAmp
              | otherwise              = runLoop $ runAmpChain nextAmps
  where
-  lastAmp  = last amps
-  a : as   = amps
-  nextAmps = a { input = input a ++ output lastAmp } : as
-
+  lastAmp               = last amps
+  a : b : c : d : e : _ = amps
+  nextAmps =
+    a { input = input a ++ output lastAmp } : b : c : d : [e { output = [] }]
 
 evalPhaseSetting :: [IntState] -> [Int] -> [IntState]
 evalPhaseSetting amps phaseSettings =
