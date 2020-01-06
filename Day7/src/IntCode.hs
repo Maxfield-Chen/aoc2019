@@ -18,7 +18,7 @@ data IntState = IntState { pc :: PC
 type Op = Int
 type PC = Int
 data Mode = Position | Immediate deriving (Show, Eq)
-data Status = Halt | Input | Running deriving Show
+data Status = Halt | Input | Running deriving (Show, Eq)
 
 maxOps = 3
 fileName = "/home/nihliphobe/projects/haskell/aoc2019/Day7/data/test1.txt"
