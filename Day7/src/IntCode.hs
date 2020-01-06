@@ -10,11 +10,14 @@ import           Data.Char                      ( digitToInt )
 data IntState = IntState { pc :: PC
                          , code :: [Op]
                          , input :: [Op]
-                         , output :: [Op]}
+                         , output :: [Op]
+                         , status :: Status} deriving Show
+
 
 type Op = Int
 type PC = Int
 data Mode = Position | Immediate deriving (Show, Eq)
+data Status = Halt | Input | Running deriving Show
 
 maxOps = 3
 fileName = "/home/nihliphobe/projects/haskell/aoc2019/Day7/data/part1.txt"
@@ -127,15 +130,16 @@ evalOp8 :: IntState -> IntState
 evalOp8 = eval4OpFunc (\r1 r2 -> if r1 == r2 then 1 else 0)
 
 runIntCode :: IntState -> IntState
-runIntCode s | op == 1   = runIntCode $ evalOp1 s
-             | op == 2   = runIntCode $ evalOp2 s
-             | op == 3   = runIntCode $ evalOp3 s
-             | op == 4   = runIntCode $ evalOp4 s
-             | op == 5   = runIntCode $ evalOp5 s
-             | op == 6   = runIntCode $ evalOp6 s
-             | op == 7   = runIntCode $ evalOp7 s
-             | op == 8   = runIntCode $ evalOp8 s
-             | op == 99  = s
+runIntCode s | op == 1                   = runIntCode $ evalOp1 s
+             | op == 2                   = runIntCode $ evalOp2 s
+             | op == 3 && null (input s) = s { status = Input }
+             | op == 3                   = runIntCode $ evalOp3 s
+             | op == 4                   = runIntCode $ evalOp4 s
+             | op == 5                   = runIntCode $ evalOp5 s
+             | op == 6                   = runIntCode $ evalOp6 s
+             | op == 7                   = runIntCode $ evalOp7 s
+             | op == 8                   = runIntCode $ evalOp8 s
+             | op == 99                  = s { status = Halt }
              | otherwise = error ("Unknown Opcode detected: " ++ show i)
  where
   i@(op, _) = if pc s < length (code s)
@@ -143,7 +147,5 @@ runIntCode s | op == 1   = runIntCode $ evalOp1 s
     else error
       ("Cannot Read next op, PC:" ++ show (pc s) ++ " | " ++ show (code s))
 
-evaluateCode :: [Op] -> [Op] -> [Op]
-evaluateCode intCode userInput =
-  let endState = runIntCode (IntState 0 intCode userInput [])
-  in  output endState
+evaluateCode :: [Op] -> [Op] -> IntState
+evaluateCode intCode userInput = runIntCode (IntState 0 intCode userInput [] Running)
