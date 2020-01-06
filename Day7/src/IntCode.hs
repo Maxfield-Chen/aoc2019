@@ -6,6 +6,7 @@ where
 import           Text.ParserCombinators.Parsec
 import           Data.List
 import           Data.Char                      ( digitToInt )
+import           Debug.Trace
 
 data IntState = IntState { pc :: PC
                          , code :: [Op]
@@ -20,7 +21,8 @@ data Mode = Position | Immediate deriving (Show, Eq)
 data Status = Halt | Input | Running deriving Show
 
 maxOps = 3
-fileName = "/home/nihliphobe/projects/haskell/aoc2019/Day7/data/part1.txt"
+fileName = "/home/nihliphobe/projects/haskell/aoc2019/Day7/data/test1.txt"
+emptyIntState = IntState 0 [99] [] [] Halt
 
 pOps :: Parser [Op]
 pOps = sepBy (choice [pOp, pOpMinus]) comma
@@ -148,4 +150,5 @@ runIntCode s | op == 1                   = runIntCode $ evalOp1 s
       ("Cannot Read next op, PC:" ++ show (pc s) ++ " | " ++ show (code s))
 
 evaluateCode :: [Op] -> [Op] -> IntState
-evaluateCode intCode userInput = runIntCode (IntState 0 intCode userInput [] Running)
+evaluateCode intCode userInput =
+  runIntCode (IntState 0 intCode userInput [] Running)
