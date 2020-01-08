@@ -10,11 +10,10 @@ main = do
   case I.parseOps code of
     Left  err     -> fail (show err)
     Right program -> do
-      print result
+      print $ I.output testMode
+      print $ I.output boostMode
      where
-      test = I.runIntCode $ I.emptyIntState
-        { I.code  = [109, 1, 203, 0, 04, 1, 99]
-        , I.input = [999]
-        }
-      result =
+      testMode =
         I.runIntCode $ I.emptyIntState { I.code = program, I.input = [1] }
+      boostMode =
+        I.runIntCode $ I.emptyIntState { I.code = program, I.input = [2] }
