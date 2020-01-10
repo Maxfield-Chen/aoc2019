@@ -39,8 +39,8 @@ data Mode = Position | Immediate | Relative deriving (Show, Eq)
 data Status = Halt | Input | Running deriving (Show, Eq)
 
 maxOps = 3
-maxCodeLen = 500
-fileName = "/home/nihliphobe/projects/haskell/aoc2019/Day9/data/input.txt"
+maxCodeLen = 50
+fileName = "/home/nihliphobe/projects/haskell/aoc2019/Day11/data/input.txt"
 emptyIntState = IntState 0 0 [99] [] [] Halt
 
 pOps :: Parser [Op]
