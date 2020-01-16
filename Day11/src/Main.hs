@@ -3,11 +3,27 @@ module Main where
 import qualified IntCode                       as I
 import           Data.Ord
 import           Data.List
-import qualified Data.Map.Strict               as M
+import qualified Data.Map                      as M
+import           Graphics.Gloss
 
 data Direction = North | East | South | West deriving (Show, Eq, Enum, Bounded)
-data Color = White | Black deriving (Show, Eq)
+data PaintColor = White | Black deriving (Show, Eq)
 
+data PainterBot = PainterBot { direction :: Direction
+                             , position :: (Int, Int)
+                             , program :: I.IntState
+                             , pathLog :: M.Map (Int, Int) PaintColor} deriving Show
+
+visualizePath :: M.Map (Int, Int) PaintColor -> Picture
+visualizePath m = pictures $ M.foldrWithKey pathToVisual [] m
+ where
+  pathToVisual (x, y) pc ret =
+    let outputColor | pc == White = white
+                    | pc == Black = black
+    in  translate (fromIntegral x * 5)
+                  (fromIntegral y * 5)
+                  (color outputColor (rectangleSolid 5 5))
+          : ret
 
 right :: Direction -> Direction
 right = doTurn maxBound minBound succ
@@ -32,23 +48,17 @@ dirToIncrement d | d == North = (0, 1)
 fmap' :: (Int -> Int -> Int) -> (Int, Int) -> (Int, Int) -> (Int, Int)
 fmap' f (x, y) (x', y') = (f x x', f y y')
 
-data PainterBot = PainterBot { direction :: Direction
-                             , position :: (Int, Int)
-                             , program :: I.IntState
-                             , pathLog :: M.Map (Int, Int) Color} deriving Show
-
-colorAtPosition :: (Int, Int) -> M.Map (Int, Int) Color -> Color
+colorAtPosition :: (Int, Int) -> M.Map (Int, Int) PaintColor -> PaintColor
 colorAtPosition = M.findWithDefault Black
 
-colorToInt :: Color -> Int
+colorToInt :: PaintColor -> Int
 colorToInt c | c == Black = 0
              | c == White = 1
 
-intToColor :: Int -> Color
+intToColor :: Int -> PaintColor
 intToColor i | i == 0    = Black
              | i == 1    = White
-             | otherwise = error ("Unknown Color: " ++ show i)
-
+             | otherwise = error ("Unknown PaintColor: " ++ show i)
 
 stepPainterBot :: PainterBot -> PainterBot
 stepPainterBot bot | I.status (program bot) == I.Halt = bot
@@ -66,14 +76,20 @@ stepPainterBot bot | I.status (program bot) == I.Halt = bot
           | otherwise = error "Bot attempted to turn in an invalid direction."
   nextBot = PainterBot nextDir nextPos nextProg nextLog
 
+window :: Display
+window = InWindow "PainterBot" (1000, 1000) (10, 10)
+
+background :: Color
+background = greyN 0.5
+
 main :: IO ()
 main = do
   code <- readFile I.fileName
   case I.parseOps code of
     Left  err     -> fail (show err)
     Right program -> do
-      print $ pathLog spentBot
-      print $ length (pathLog spentBot)
+      display window background drawing
      where
       spentBot   = stepPainterBot (PainterBot North (0, 0) startState M.empty)
       startState = I.emptyIntState { I.code = program, I.status = I.Running }
+      drawing    = visualizePath (pathLog spentBot)

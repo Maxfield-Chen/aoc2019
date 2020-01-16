@@ -6,6 +6,7 @@ where
 import           Text.ParserCombinators.Parsec
 import           Data.List
 import           Data.Char                      ( digitToInt )
+import           Control.Monad.State
 
 data IntState = IntState { pc :: PC,
                            relBase :: PC
