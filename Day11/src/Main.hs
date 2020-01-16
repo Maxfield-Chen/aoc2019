@@ -5,7 +5,6 @@ import           Data.Ord
 import           Data.List
 import qualified Data.Map                      as M
 import           Graphics.Gloss
-import           Debug.Trace
 
 data Direction = North | East | South | West deriving (Show, Eq, Enum, Bounded)
 data PaintColor = White | Black deriving (Show, Eq)
