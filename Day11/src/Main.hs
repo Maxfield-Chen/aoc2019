@@ -94,10 +94,11 @@ main = do
   case I.parseOps code of
     Left  err     -> fail (show err)
     Right program -> do
-      print $ pathLog spentBot
-      print $ length (pathLog spentBot)
+      print ("Part 1: " ++ show (length (pathLog spentBot1)))
       display window background drawing
      where
-      spentBot   = stepPainterBot (PainterBot North (0, 0) startState M.empty)
-      startState = I.emptyIntState { I.code = program, I.status = I.Running }
-      drawing    = visualizePath (pathLog spentBot)
+      startProg = I.emptyIntState { I.code = program, I.status = I.Running }
+      spentBot1 = stepPainterBot (PainterBot North (0, 0) startProg M.empty)
+      spentBot2 = stepPainterBot
+        (PainterBot North (0, 0) startProg (M.singleton (0, 0) White))
+      drawing = visualizePath (pathLog spentBot2)
