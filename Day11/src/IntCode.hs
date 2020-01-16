@@ -41,7 +41,6 @@ data Status = Halt | Input | Running deriving (Show, Eq)
 
 maxOps = 3
 maxCodeLen = 50
-fileName = "/home/nihliphobe/projects/haskell/aoc2019/Day11/data/input.txt"
 emptyIntState = IntState 0 0 [99] [] [] Halt
 
 pOps :: Parser [Op]

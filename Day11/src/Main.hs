@@ -5,6 +5,7 @@ import           Data.Ord
 import           Data.List
 import qualified Data.Map                      as M
 import           Graphics.Gloss
+import           Debug.Trace
 
 data Direction = North | East | South | West deriving (Show, Eq, Enum, Bounded)
 data PaintColor = White | Black deriving (Show, Eq)
@@ -14,15 +15,17 @@ data PainterBot = PainterBot { direction :: Direction
                              , program :: I.IntState
                              , pathLog :: M.Map (Int, Int) PaintColor} deriving Show
 
+pixelScale = 20
+
 visualizePath :: M.Map (Int, Int) PaintColor -> Picture
 visualizePath m = pictures $ M.foldrWithKey pathToVisual [] m
  where
   pathToVisual (x, y) pc ret =
     let outputColor | pc == White = white
                     | pc == Black = black
-    in  translate (fromIntegral x * 5)
-                  (fromIntegral y * 5)
-                  (color outputColor (rectangleSolid 5 5))
+    in  translate (fromIntegral x * pixelScale)
+                  (fromIntegral y * pixelScale)
+                  (color outputColor (rectangleSolid pixelScale pixelScale))
           : ret
 
 right :: Direction -> Direction
@@ -60,6 +63,7 @@ intToColor i | i == 0    = Black
              | i == 1    = White
              | otherwise = error ("Unknown PaintColor: " ++ show i)
 
+--Error occurs because robot moves in direction currently facing, not new direction
 stepPainterBot :: PainterBot -> PainterBot
 stepPainterBot bot | I.status (program bot) == I.Halt = bot
                    | otherwise                        = stepPainterBot nextBot
@@ -67,10 +71,10 @@ stepPainterBot bot | I.status (program bot) == I.Halt = bot
   shipColor           = colorAtPosition (position bot) (pathLog bot)
   toRun               = (program bot) { I.input = [colorToInt shipColor] }
   nextProg            = I.runIntCode toRun
-  paintColor : lr : _ = I.output nextProg
+  lr : paintColor : _ = I.output nextProg
   (x, y)              = position bot
   nextLog = M.insert (position bot) (intToColor paintColor) (pathLog bot)
-  nextPos = fmap' (+) (position bot) (dirToIncrement (direction bot))
+  nextPos             = fmap' (+) (position bot) (dirToIncrement nextDir)
   nextDir | lr == 0   = left (direction bot)
           | lr == 1   = right (direction bot)
           | otherwise = error "Bot attempted to turn in an invalid direction."
@@ -82,12 +86,16 @@ window = InWindow "PainterBot" (1000, 1000) (10, 10)
 background :: Color
 background = greyN 0.5
 
+filename = "/home/nihliphobe/projects/haskell/aoc2019/Day11/data/input.txt"
+
 main :: IO ()
 main = do
-  code <- readFile I.fileName
+  code <- readFile filename
   case I.parseOps code of
     Left  err     -> fail (show err)
     Right program -> do
+      print $ pathLog spentBot
+      print $ length (pathLog spentBot)
       display window background drawing
      where
       spentBot   = stepPainterBot (PainterBot North (0, 0) startState M.empty)
